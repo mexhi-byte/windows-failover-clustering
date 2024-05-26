@@ -1,0 +1,40 @@
+<#
+This script is used to created new windows failover cluster
+CSV file should contain clustername, server1, server2 and IP
+#>
+
+$fullPathIncFileName = $MyInvocation.MyCommand.Definition
+$currentScriptName = $MyInvocation.MyCommand.Name
+$currentExecutingPath = $fullPathIncFileName.Replace($currentScriptName, "")
+$logs = $currentExecutingPath + "errorlogs.txt"
+$ServessFile = $currentExecutingPath + "Servers.csv"
+$Servers = Import-Csv -Path $ServessFile
+New-Item -ItemType file $logs -Force
+
+foreach($S in $Servers)
+{
+
+TRY
+{
+$ErrorActionPreference = "Stop";
+
+	$ClusterName = $S.ClusterName
+	$Server1 = $S.Server1
+	$Server2 = $S.Server2
+	$IP = $S.IP
+
+	#Creating New Windows Cluster
+	write-host "Creating Windows cluster $ClusterName"
+	Test-Cluster -Node  $Server1,$Server2
+	New-Cluster -Name $ClusterName -Node  $Server1,$Server2 -StaticAddress $IP
+}
+CATCH
+{
+"--" + "$ClusterName `nError: $($_.Exception.Message)" | out-file $logs -append
+}
+FINALLY
+{
+$ErrorActionPreference = "CONTINUE";
+}
+	
+}
